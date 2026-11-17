@@ -1,0 +1,131 @@
+/* Custom styles & Print formatting for Daily Report App */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Toast animations */
+@keyframes slideInUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.toast-enter {
+    animation: slideInUp 0.3s ease-out forwards;
+}
+
+.toast-exit {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+/* Print Styles for PDF Export */
+@media print {
+    /* Hide all navigation, buttons, tabs, modal close, filters during print */
+    nav, 
+    #tabNav, 
+    #filterSection, 
+    .no-print, 
+    button, 
+    .btn-action,
+    #toastContainer {
+        display: none !important;
+    }
+
+    body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-size: 12pt;
+        margin: 0;
+        padding: 10mm;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    /* Print header styling */
+    .print-header {
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+
+    /* Table styling for print */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-top: 15px !important;
+    }
+
+    th, td {
+        border: 1px solid #cbd5e1 !important;
+        padding: 8px 10px !important;
+        font-size: 10pt !important;
+    }
+
+    th {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+        font-weight: bold !important;
+    }
+
+    .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl {
+        box-shadow: none !important;
+    }
+
+    /* When printing modal */
+    #reportModal.print-modal-active {
+        position: static !important;
+        background: transparent !important;
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    #reportModal.print-modal-active > div {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    .page-break {
+        page-break-before: always;
+    }
+}

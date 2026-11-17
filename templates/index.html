@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Report Tim & Karyawan - WorkLog Pro</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- SheetJS (Excel .xlsx Export) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS & Print Styling -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased flex flex-col justify-between">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Logo & Name -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                        <i data-lucide="clipboard-check" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-slate-900 tracking-tight leading-none">WorkLog <span class="text-indigo-600">Daily</span></h1>
+                        <p class="text-xs text-slate-500 mt-0.5">Sistem Laporan & Rekap Kerja Tim</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav id="tabNav" class="flex items-center gap-1 sm:gap-2">
+                    <button onclick="switchTab('form')" id="tab-btn-form" class="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-indigo-600 border-b-2 border-indigo-600 transition">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        <span>Input Laporan</span>
+                    </button>
+                    <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-900 border-b-2 border-transparent transition">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard Lead</span>
+                    </button>
+                    <button onclick="switchTab('archive')" id="tab-btn-archive" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-900 border-b-2 border-transparent transition">
+                        <i data-lucide="folder-kanban" class="w-4 h-4"></i>
+                        <span>Rekap & Arsip</span>
+                    </button>
+                </nav>
+
+                <!-- Quick Action -->
+                <div class="hidden sm:flex items-center gap-2">
+                    <button onclick="exportReportsToExcel()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition border border-emerald-200">
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Export Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Official Print Header (Only visible on window.print()) -->
+    <div class="hidden print:block print-header">
+        <div class="flex justify-between items-center border-b pb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">REKAP LAPORAN HARIAN (DAILY WORK REPORT)</h1>
+                <p class="text-sm text-slate-600">Dokumen resmi aktivitas dan progres kerja tim</p>
+            </div>
+            <div class="text-right text-xs text-slate-500">
+                <p>Dicetak pada: <span id="printDateSpan"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+        <!-- ========================================== -->
+        <!-- TAB 1: FORM INPUT LAPORAN HARIAN           -->
+        <!-- ========================================== -->
+        <section id="tab-content-form" class="space-y-6">
+            <div class="max-w-3xl mx-auto">
+                <!-- Form Header Card -->
+                <div class="bg-gradient-to-r from-indigo-700 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-100 mb-6 flex items-center justify-between">
+                    <div>
+                        <span class="inline-block px-2.5 py-0.5 rounded-full bg-indigo-500/50 text-indigo-100 text-xs font-semibold mb-2 uppercase tracking-wider">
+                            Formulir Karyawan
+                        </span>
+                        <h2 class="text-2xl font-bold">Laporan Aktivitas Harian</h2>
+                        <p class="text-indigo-100 text-sm mt-1">Catat pencapaian, progres, kendala, dan rencana kerja Anda hari ini.</p>
+                    </div>
+                    <div class="hidden md:flex w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm items-center justify-center">
+                        <i data-lucide="file-signature" class="w-7 h-7 text-white"></i>
+                    </div>
+                </div>
+
+                <!-- Main Form Body -->
+                <form id="reportForm" class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
+                    
+                    <!-- Row 1: Informasi Karyawan & Tanggal -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label for="reportDate" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                                Tanggal Laporan <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="date" id="reportDate" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                        </div>
+
+                        <div>
+                            <label for="employeeName" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                                Nama Lengkap Karyawan <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" id="employeeName" placeholder="Contoh: Budi Santoso" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Divisi & Tipe Kerja -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <div class="sm:col-span-1">
+                            <label for="department" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                                Divisi / Departemen <span class="text-rose-500">*</span>
+                            </label>
+                            <select id="department" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                                <option value="" disabled selected>Pilih Divisi</option>
+                                <option value="IT & Engineering">IT & Engineering</option>
+                                <option value="Marketing & Creative">Marketing & Creative</option>
+                                <option value="Operations & Support">Operations & Support</option>
+                                <option value="HR & General Affairs">HR & General Affairs</option>
+                                <option value="Finance & Accounting">Finance & Accounting</option>
+                                <option value="Sales & Business Dev">Sales & Business Dev</option>
+                                <option value="Product & Design">Product & Design</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+
+                        <div class="sm:col-span-1">
+                            <label for="workLocation" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                                Mode Kerja
+                            </label>
+                            <select id="workLocation" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                                <option value="WFO" selected>WFO (Work From Office)</option>
+                                <option value="WFH">WFH (Work From Home)</option>
+                                <option value="Lapangan">Lapangan / Perjalanan Dinas</option>
+                            </select>
+                        </div>
+
+                        <div class="sm:col-span-1">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                                Jam Kerja (Mulai - Selesai)
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="time" id="startTime" value="08:30" class="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-center focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <input type="time" id="endTime" value="17:30" class="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-center focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-100">
+
+                    <!-- Section: Tugas Selesai -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="completedTasks" class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>
+                                Pekerjaan / Tugas yang Selesai Hari Ini <span class="text-rose-500">*</span>
+                            </label>
+                            <span class="text-xs text-slate-400">Gunakan tanda hubung (-) untuk setiap poin</span>
+                        </div>
+                        <textarea id="completedTasks" rows="4" required placeholder="- Menyelesaikan mockup halaman dashboard&#10;- Merilis update versi 1.2 ke server production&#10;- Meeting mingguan sprint review dengan tim product" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"></textarea>
+                    </div>
+
+                    <!-- Section: Tugas In Progress -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="inProgressTasks" class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
+                                Tugas Sedang Berjalan (In Progress)
+                            </label>
+                            <span class="text-xs text-slate-400">Opsional</span>
+                        </div>
+                        <textarea id="inProgressTasks" rows="2" placeholder="- Pengerjaan modul laporan PDF yang sedang proses integrasi" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"></textarea>
+                    </div>
+
+                    <!-- Section: Kendala / Blocker Toggle -->
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="hasBlockers" class="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500">
+                                <label for="hasBlockers" class="text-sm font-semibold text-slate-800 cursor-pointer">
+                                    Saya mengalami kendala / blocker hari ini (butuh bantuan atau follow-up lead)
+                                </label>
+                            </div>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-700">Penting</span>
+                        </div>
+
+                        <!-- Blocker details (hidden by default) -->
+                        <div id="blockerInputContainer" class="hidden pt-2 border-t border-rose-100">
+                            <label for="blockersText" class="block text-xs font-bold uppercase tracking-wider text-rose-700 mb-1">
+                                Deskripsikan Kendala & Siapa yang Perlu Membantu:
+                            </label>
+                            <textarea id="blockersText" rows="2" placeholder="Contoh: Menunggu approval purchase order dari tim finance, atau server dev staging sedang tidak bisa diakses." class="w-full px-3.5 py-2 bg-rose-50/60 border border-rose-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 text-slate-800"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Section: Rencana Besok -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="tomorrowPlan" class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                <i data-lucide="arrow-right-circle" class="w-4 h-4 text-indigo-500"></i>
+                                Rencana Prioritas Kerja Besok
+                            </label>
+                            <span class="text-xs text-slate-400">Target prioritas esok hari</span>
+                        </div>
+                        <textarea id="tomorrowPlan" rows="2" placeholder="- Melakukan testing menyeluruh fitur export&#10;- Melanjutkan revisi feedback dari manajer" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"></textarea>
+                    </div>
+
+                    <!-- Row 3: Mood & Submit -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 items-end pt-2">
+                        <div>
+                            <label for="moodSelect" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                                Kondisi / Mood Kerja Hari Ini
+                            </label>
+                            <select id="moodSelect" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="Sangat Baik">🟢 Sangat Baik / Berenergi</option>
+                                <option value="Baik" selected>🔵 Baik & Produktif</option>
+                                <option value="Netral">⚪ Biasa Saja / Netral</option>
+                                <option value="Butuh Dukungan">🟡 Butuh Dukungan / Agak Lelah</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <button type="submit" id="btnSubmitReport" class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md shadow-indigo-200 hover:shadow-indigo-300 transition">
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                                <span>Kirim Laporan Harian</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: DASHBOARD & METRIK TIM (LEAD VIEW) -->
+        <!-- ========================================== -->
+        <section id="tab-content-dashboard" class="hidden space-y-8">
+            
+            <!-- Page Title -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Dashboard & Metrik Tim</h2>
+                    <p class="text-sm text-slate-500 mt-0.5">Monitoring aktivitas, kepatuhan submit laporan, dan evaluasi kendala tim.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="loadDashboard()" class="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-sm">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Data
+                    </button>
+                    <button onclick="exportReportsToExcel()" class="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Rekap (.xlsx)
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Metric Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                
+                <!-- Card 1: Laporan Hari Ini -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Laporan Masuk Hari Ini</p>
+                        <h3 id="statTotalToday" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        <p class="text-xs text-indigo-600 mt-1 font-medium">Terus diperbarui real-time</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                        <i data-lucide="check-square" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <!-- Card 2: Ada Kendala / Blockers Alert -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Kendala Hari Ini</p>
+                        <h3 id="statBlockersToday" class="text-3xl font-extrabold text-rose-600 mt-1">0</h3>
+                        <p class="text-xs text-rose-500 mt-1 font-medium">Perlu perhatian pimpinan</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <!-- Card 3: Total Karyawan Aktif -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Karyawan Terdaftar</p>
+                        <h3 id="statEmployees" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        <p class="text-xs text-slate-500 mt-1 font-medium">Kontributor laporan</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <!-- Card 4: Total Semua Laporan -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Arsip Laporan</p>
+                        <h3 id="statTotalAll" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+                        <p class="text-xs text-emerald-600 mt-1 font-medium">Tersimpan di database</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <i data-lucide="database" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Doughnut Chart: Departemen -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Distribusi Laporan per Divisi</h3>
+                    <p class="text-xs text-slate-400 mb-4">Persebaran laporan masuk berdasarkan departemen kerja</p>
+                    <div class="h-64 relative">
+                        <canvas id="chartDepartment"></canvas>
+                    </div>
+                </div>
+
+                <!-- Bar Chart: Tren 7 Hari -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Tren Submit Laporan (7 Hari Terakhir)</h3>
+                    <p class="text-xs text-slate-400 mb-4">Konsistensi pelaporan harian dari seluruh anggota tim</p>
+                    <div class="h-64 relative">
+                        <canvas id="chartTrend"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Activity Feed -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Aktivitas Laporan Hari Ini</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Daftar staf yang sudah mengirimkan daily report hari ini</p>
+                    </div>
+                    <button onclick="switchTab('archive')" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">
+                        Lihat Semua Arsip &rarr;
+                    </button>
+                </div>
+
+                <div id="todayFeedList" class="space-y-3">
+                    <!-- Populated dynamically by JavaScript -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: DATA REKAP, FILTER & ARSIP          -->
+        <!-- ========================================== -->
+        <section id="tab-content-archive" class="hidden space-y-6">
+
+            <!-- Title & Export Bar -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Rekap & Arsip Laporan</h2>
+                    <p class="text-sm text-slate-500 mt-0.5">Cari, filter, cetak PDF, atau export data ke Excel.</p>
+                </div>
+
+                <!-- Export Action Buttons -->
+                <div class="flex items-center flex-wrap gap-2">
+                    <button onclick="exportReportsToExcel()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Export Excel (.xlsx)
+                    </button>
+                    <button onclick="exportReportsToPDF()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Cetak / Simpan PDF
+                    </button>
+                    <a href="/api/export/csv" download class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filter Toolbar -->
+            <div id="filterSection" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- Search Input -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Cari Karyawan / Tugas</label>
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+                        <input type="text" id="filterSearch" placeholder="Ketik kata kunci..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                    </div>
+                </div>
+
+                <!-- Filter Department -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Divisi / Departemen</label>
+                    <select id="filterDept" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Semua">Semua Divisi</option>
+                        <option value="IT & Engineering">IT & Engineering</option>
+                        <option value="Marketing & Creative">Marketing & Creative</option>
+                        <option value="Operations & Support">Operations & Support</option>
+                        <option value="HR & General Affairs">HR & General Affairs</option>
+                        <option value="Finance & Accounting">Finance & Accounting</option>
+                        <option value="Sales & Business Dev">Sales & Business Dev</option>
+                        <option value="Product & Design">Product & Design</option>
+                    </select>
+                </div>
+
+                <!-- Filter Status Kendala -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Status Kendala</label>
+                    <select id="filterBlocker" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Semua Status</option>
+                        <option value="0">Lancar (Tanpa Kendala)</option>
+                        <option value="1">Ada Kendala (Blockers)</option>
+                    </select>
+                </div>
+
+                <!-- Filter Date -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tanggal Tertentu</label>
+                    <input type="date" id="filterDate" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                    <span id="reportCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
+                        Memuat data...
+                    </span>
+                    <span class="text-xs text-slate-400">Klik ikon mata untuk melihat detail lengkap</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider font-bold text-slate-500">
+                                <th class="py-3 px-4">Tanggal</th>
+                                <th class="py-3 px-4">Karyawan</th>
+                                <th class="py-3 px-4">Divisi</th>
+                                <th class="py-3 px-4">Ringkasan Tugas Selesai</th>
+                                <th class="py-3 px-4">Status Kendala</th>
+                                <th class="py-3 px-4 text-right no-print">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportsTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 no-print text-center text-xs text-slate-400">
+        <p>&copy; 2026 WorkLog Daily Reporting System • Dirancang untuk Efisiensi & Transparansi Tim</p>
+    </footer>
+
+    <!-- Detail Report Modal -->
+    <div id="detailModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 no-print">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-5 h-5 text-indigo-600"></i>
+                    <h3 class="font-bold text-slate-900 text-base">Detail Laporan Harian</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="printModalReport()" class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition">
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak / PDF
+                    </button>
+                    <button onclick="closeDetailModal()" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content (Scrollable) -->
+            <div id="detailModalContent" class="p-6 overflow-y-auto flex-1">
+                <!-- Injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+    <!-- Application Script -->
+    <script src="/static/js/app.js"></script>
+    <script>
+        document.getElementById('printDateSpan').textContent = new Date().toLocaleDateString('id-ID', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+    </script>
+</body>
+</html>
